@@ -4,23 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WebVania - Player Window</title>
-    <link rel="stylesheet" href="styles.css">
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <style>
-        #wrapper {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+        html, body {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            background-color: #0b0c10; display: flex;
+            justify-content: center; align-items: center; overflow: hidden;
         }
+        #game-container { width: 100vw; height: 100vh; }
     </style>
 </head>
 <body>
-    <div id="wrapper">
-        <div id="game-container"></div>
-    </div>
+    <div id="game-container"></div>
     <script src="game.js"></script>
     <script>
-        // SECRET GATEWAY: Press Shift + E together to open the map editor!
+        // Hold Shift and tap E to jump straight into the map canvas painter
         window.addEventListener('keydown', (e) => {
             if (e.shiftKey && (e.key === 'E' || e.key === 'e')) {
                 window.location.href = 'editor.html';
