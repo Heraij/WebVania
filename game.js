@@ -26,8 +26,8 @@ const game = new Phaser.Game(config);
 // Game Objects
 let player;
 let cursors;
-let keyC;
-let keyX;
+let keyC; // Dashing key
+let keyX; // Attack key
 let platforms;
 let enemies;
 let powerups;
@@ -45,6 +45,7 @@ let hasDash = false;
 // Player State Variables
 let isDashing = false;
 let canDash = true;
+let canAttack = true; // Combat cooldown gate
 let dashDirection = 1;
 let isAttacking = false;
 let lastFacingDirection = 1;
@@ -55,10 +56,9 @@ function preload() {
     pG.fillStyle(0xffffff, 1); pG.fillRect(0, 0, 32, 48);
     pG.generateTexture('playerTex', 32, 48);
 
-
+    // Sword Hitbox (Widened to 110 pixels for better reach!)
     let sG = this.make.graphics({ x: 0, y: 0, add: false });
-    sG.fillStyle(0x00f0ff, 0.6); 
-    sG.fillRect(0, 0, 110, 32); 
+    sG.fillStyle(0x00f0ff, 0.6); sG.fillRect(0, 0, 110, 32);
     sG.generateTexture('swordTex', 110, 32);
 
     // Hazard/Enemy Textures (Red things that deal damage)
@@ -68,7 +68,7 @@ function preload() {
 
     let spikeG = this.make.graphics({ x: 0, y: 0, add: false });
     spikeG.fillStyle(0xff3333, 1); 
-    spikeG.fillTriangle(0, 32, 16, 0, 32, 32); // Creates a red danger spike
+    spikeG.fillTriangle(0, 32, 16, 0, 32, 32); 
     spikeG.generateTexture('spikeTex', 32, 32);
 
     // Powerups
@@ -92,9 +92,7 @@ function create() {
 
     // 2. Map Layout Layout
     platforms = this.physics.add.staticGroup();
-    
-    // Bottom ground stretching across our new 3200px world limit
-    platforms.create(1600, 704, 'groundTex');
+    platforms.create(1600, 704, 'groundTex'); // Main floor
 
     // Scatter walls and ledges deep out into the world zone
     platforms.create(16, 360, 'groundTex').setDisplaySize(32, 720).refreshBody(); // Left boundary wall
@@ -112,7 +110,7 @@ function create() {
 
     // 4. Player Setup
     player = this.physics.add.sprite(200, 500, 'playerTex');
-    player.setCollideWorldBounds(true); // Locks player inside our 3200px setup
+    player.setCollideWorldBounds(true); 
 
     // 5. Sword Setup
     swordAttack = this.physics.add.sprite(0, 0, 'swordTex');
@@ -144,15 +142,15 @@ function create() {
     // 9. Input Hooks
     cursors = this.input.keyboard.createCursorKeys();
     keyC = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.C);
-   keyX = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.X);
+    keyX = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.X);
 
     // 10. ADVANCED CAMERA CONFIGURATION
-    this.cameras.main.setBounds(0, 0, 3200, 720); // Extends camera movement viewport
-    this.cameras.main.startFollow(player, true, 0.1, 0.1); // Camera tracks player with smooth lerp movement
+    this.cameras.main.setBounds(0, 0, 3200, 720); 
+    this.cameras.main.startFollow(player, true, 0.1, 0.1); 
 
     // 11. SCROLL-LOCKED HEALTH HUD TEXT
     healthText = this.add.text(20, 20, 'HP: ❤️❤️❤️❤️❤️', { font: '28px Arial', fill: '#ff3333' });
-    healthText.setScrollFactor(0); // This completely pins the UI text to screen view coordinates so it doesn't float away
+    healthText.setScrollFactor(0); 
 }
 
 function update() {
@@ -191,7 +189,7 @@ function update() {
         }
     }
 
-    // Dash Action
+    // Dash Action (C Key)
     if (Phaser.Input.Keyboard.JustDown(keyC) && hasDash && canDash) {
         triggerDash(this);
     }
@@ -200,17 +198,19 @@ function update() {
         canDash = true;
     }
 
-    // Match Attack Hitbox to orientation
+    // Attack Input (X Key)
     if (Phaser.Input.Keyboard.JustDown(keyX)) {
         handleAttack(this);
     }
+
+    // Match Attack Hitbox to orientation
     if (isAttacking) {
-        let offset = lastFacingDirection === 1 ? 40 : -40;
+        let offset = lastFacingDirection === 1 ? 65 : -65;
         swordAttack.setPosition(player.x + offset, player.y);
     }
 }
 
-// --- HELPER CONFIGURATIONS ---
+// --- MECHANICS FUNCTIONS ---
 
 function setupPatrollingEnemy(x, y, speed) {
     let enemy = enemies.create(x, y, 'enemyTex');
@@ -233,14 +233,23 @@ function triggerDash(scene) {
 }
 
 function handleAttack(scene) {
-    if (isAttacking) return;
+    if (isAttacking || !canAttack) return; 
+
     isAttacking = true;
+    canAttack = false; 
+    
     swordAttack.setActive(true).setVisible(true);
+    player.setTint(0x00f0ff); 
 
     scene.time.delayedCall(150, () => {
         isAttacking = false;
         swordAttack.setActive(false).setVisible(false);
-        swordAttack.setPosition(0, 0);
+        swordAttack.setPosition(0, 0); 
+        if (!isInvincible) player.clearTint();
+    });
+
+    scene.time.delayedCall(700, () => {
+        canAttack = true;
     });
 }
 
@@ -251,16 +260,12 @@ function collectPowerup(player, powerup) {
     powerup.destroy();
 }
 
-// --- HEALTH & INJURY SYSTEM ---
-
 function takeDamage(player, hazard) {
-    // Skip if currently immune due to tracking i-frames
     if (isInvincible || playerHp <= 0) return;
 
     playerHp--;
     isInvincible = true;
 
-    // Update Hearts Display
     let hearts = '';
     for(let i = 0; i < 5; i++) {
         hearts += i < playerHp ? '❤️' : '🖤';
@@ -269,20 +274,18 @@ function takeDamage(player, hazard) {
 
     if (playerHp <= 0) {
         alert("GAME OVER! Resetting map...");
-        location.reload(); // Simple refresh to restart the scene configuration
+        location.reload();
         return;
     }
 
-    // Knockback: Pop player up and away from damage source
     let forceDirection = player.x < hazard.x ? -300 : 300;
     player.setVelocityX(forceDirection);
     player.setVelocityY(-350);
-    player.setTint(0xff3333); // Flash red immediately
+    player.setTint(0xff3333); 
 
-    // Provide 1 second of invincibility frame protection
     this.time.delayedCall(1000, () => {
         isInvincible = false;
-        player.clearTint(); // Revert back to original white sprite color
+        player.clearTint(); 
     });
 }
 
