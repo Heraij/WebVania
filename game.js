@@ -1,18 +1,17 @@
-// Phaser Game Configuration
 const config = {
     type: Phaser.AUTO,
-    // 1. SCALE CONFIGURATION: This forces the canvas to fill the browser window
+    width: 1280,   // A modern widescreen internal resolution
+    height: 720,
+    parent: 'game-container',
     scale: {
-        mode: Phaser.Scale.RESIZE,
-        parent: 'game-container',
-        width: '100%',
-        height: '100%'
+        mode: Phaser.Scale.FIT, // Safely stretches the game to fill the screen
+        autoCenter: Phaser.Scale.CENTER_BOTH
     },
     physics: {
         default: 'arcade',
         arcade: {
-            gravity: { y: 1000 }, // Bumped up gravity for a heavier, snappier feel
-            debug: false         
+            gravity: { y: 1200 }, // Snappy, heavy platformer gravity
+            debug: false
         }
     },
     scene: {
@@ -28,7 +27,7 @@ let cursors;
 let platforms;
 
 function preload() {
-    // Dynamic placeholder textures
+    // Generate placeholder textures cleanly
     let playerGraphic = this.make.graphics({ x: 0, y: 0, add: false });
     playerGraphic.fillStyle(0xffffff, 1);
     playerGraphic.fillRect(0, 0, 32, 48);
@@ -36,25 +35,22 @@ function preload() {
 
     let groundGraphic = this.make.graphics({ x: 0, y: 0, add: false });
     groundGraphic.fillStyle(0x00ff66, 1);
-    groundGraphic.fillRect(0, 0, 800, 32); // Made wider for the larger screen
-    groundGraphic.generateTexture('groundTexture', 800, 32);
+    groundGraphic.fillRect(0, 0, 1280, 32); // Matches our new width
+    groundGraphic.generateTexture('groundTexture', 1280, 32);
 }
 
 function create() {
     platforms = this.physics.add.staticGroup();
 
-    // Create a floor that stays at the very bottom of the dynamically sized screen
-    let gameWidth = this.sys.game.config.width;
-    let gameHeight = this.sys.game.config.height;
-
-    // Place the floor right at the bottom
-    platforms.create(gameWidth / 2, gameHeight - 16, 'groundTexture').setDisplaySize(gameWidth, 32).refreshBody();
+    // Floor at the bottom of our 1280x720 canvas
+    platforms.create(640, 704, 'groundTexture');
     
-    // Add some random test floating ledges
-    platforms.create(gameWidth * 0.75, gameHeight * 0.6, 'groundTexture').setDisplaySize(300, 32).refreshBody();
-    platforms.create(gameWidth * 0.25, gameHeight * 0.4, 'groundTexture').setDisplaySize(300, 32).refreshBody();
+    // Test platforms
+    platforms.create(900, 500, 'groundTexture').setDisplaySize(400, 32).refreshBody();
+    platforms.create(300, 350, 'groundTexture').setDisplaySize(400, 32).refreshBody();
 
-    player = this.physics.add.sprite(100, gameHeight - 100, 'playerTexture');
+    // Spawn player safely above the floor
+    player = this.physics.add.sprite(200, 400, 'playerTexture');
     player.setCollideWorldBounds(true); 
 
     this.physics.add.collider(player, platforms);
@@ -63,18 +59,17 @@ function create() {
 }
 
 function update() {
-    // --- 1. HORIZONTAL MOVEMENT ---
+    // Left/Right Movement
     if (cursors.left.isDown) {
-        player.setVelocityX(-350); // Slightly faster speeds for fullscreen
+        player.setVelocityX(-400);
     } else if (cursors.right.isDown) {
-        player.setVelocityX(350);
+        player.setVelocityX(400);
     } else {
         player.setVelocityX(0); 
     }
 
-    // --- 2. JUMPING (Independent of horizontal movement) ---
-    // This allows jumping while actively running left or right
+    // Independent Jumping (Fixes jumping while running!)
     if (cursors.up.isDown && player.body.touching.down) {
-        player.setVelocityY(-550); 
+        player.setVelocityY(-650); 
     }
 }
