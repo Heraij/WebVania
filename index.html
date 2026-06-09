@@ -7,30 +7,25 @@
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <style>
-        /* Small styling update to position the navigation link cleanly below the game container */
         #wrapper {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 15px;
-        }
-        a {
-            color: #66fcf1;
-            text-decoration: none;
-            font-family: Arial, sans-serif;
-            font-weight: bold;
-            font-size: 16px;
-        }
-        a:hover {
-            text-shadow: 0 0 8px #66fcf1;
         }
     </style>
 </head>
 <body>
     <div id="wrapper">
         <div id="game-container"></div>
-        <a href="editor.html">GO TO WORLD MAP CANVAS WRITER →</a>
     </div>
     <script src="game.js"></script>
+    <script>
+        // SECRET GATEWAY: Press Shift + E together to open the map editor!
+        window.addEventListener('keydown', (e) => {
+            if (e.shiftKey && (e.key === 'E' || e.key === 'e')) {
+                window.location.href = 'editor.html';
+            }
+        });
+    </script>
 </body>
 </html>
