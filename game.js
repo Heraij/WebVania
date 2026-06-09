@@ -27,6 +27,7 @@ const game = new Phaser.Game(config);
 let player;
 let cursors;
 let keyF;
+let keyX;
 let platforms;
 let enemies;
 let powerups;
@@ -198,6 +199,9 @@ function update() {
     }
 
     // Match Attack Hitbox to orientation
+    if (Phaser.Input.Keyboard.JustDown(keyX)) {
+        handleAttack(this);
+    }
     if (isAttacking) {
         let offset = lastFacingDirection === 1 ? 40 : -40;
         swordAttack.setPosition(player.x + offset, player.y);
