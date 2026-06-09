@@ -26,7 +26,7 @@ const game = new Phaser.Game(config);
 // Game Objects
 let player;
 let cursors;
-let keyF;
+let keyC;
 let keyX;
 let platforms;
 let enemies;
@@ -55,9 +55,11 @@ function preload() {
     pG.fillStyle(0xffffff, 1); pG.fillRect(0, 0, 32, 48);
     pG.generateTexture('playerTex', 32, 48);
 
+
     let sG = this.make.graphics({ x: 0, y: 0, add: false });
-    sG.fillStyle(0x00f0ff, 0.6); sG.fillRect(0, 0, 60, 32);
-    sG.generateTexture('swordTex', 60, 32);
+    sG.fillStyle(0x00f0ff, 0.6); 
+    sG.fillRect(0, 0, 110, 32); 
+    sG.generateTexture('swordTex', 110, 32);
 
     // Hazard/Enemy Textures (Red things that deal damage)
     let eG = this.make.graphics({ x: 0, y: 0, add: false });
@@ -141,7 +143,7 @@ function create() {
 
     // 9. Input Hooks
     cursors = this.input.keyboard.createCursorKeys();
-    keyF = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.F);
+    keyC = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.C);
    keyX = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.X);
 
     // 10. ADVANCED CAMERA CONFIGURATION
@@ -190,7 +192,7 @@ function update() {
     }
 
     // Dash Action
-    if (Phaser.Input.Keyboard.JustDown(keyF) && hasDash && canDash) {
+    if (Phaser.Input.Keyboard.JustDown(keyC) && hasDash && canDash) {
         triggerDash(this);
     }
 
