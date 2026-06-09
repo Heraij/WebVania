@@ -26,8 +26,8 @@ const game = new Phaser.Game(config);
 // Game Objects
 let player;
 let cursors;
-let keyC; // Dashing
-let keyX; // Attacking
+let keyC; // Dashing key
+let keyX; // Attack key
 let platforms;
 let enemies;
 let powerups;
@@ -39,8 +39,8 @@ let healthText;
 // Player Attributes & Metroidvania Progression
 let playerHp = 5;
 let isInvincible = false;
-let hasWallJump = true; // Kept true for now so you can immediately test your drawn walls!
-let hasDash = true;     // Kept true for now so you can immediately test dash gaps!
+let hasWallJump = true; 
+let hasDash = true;     
 
 // Player State Variables
 let isDashing = false;
@@ -78,20 +78,27 @@ function preload() {
     gG.generateTexture('groundTex', 32, 32);
 }
 
-// READ MAP DATA MATRIX FROM EDITOR MEMORY
-    let savedMapRaw = localStorage.getItem('customMetroidvaniaMap');
-    
-    enemies = this.physics.add.group(); // Initialize enemies group BEFORE loading the map loop
+function create() {
+    // 1. EXTEND WORLD BOUNDS to match the size of our editor layout (40 columns * 32px = 1280px wide)
+    this.physics.world.setBounds(0, 0, 1280, 720);
+
+    // Initialize groups cleanly
+    enemies = this.physics.add.group(); 
     platforms = this.physics.add.staticGroup();
     let spikes = this.physics.add.staticGroup();
+
+    // 2. READ MAP DATA MATRIX FROM EDITOR MEMORY
+    let savedMapRaw = localStorage.getItem('customMetroidvaniaMap');
     
     if (savedMapRaw) {
         let gridMap = JSON.parse(savedMapRaw);
         
+        // Loop through the rows and columns of your custom painted map
         for (let r = 0; r < gridMap.length; r++) {
             for (let c = 0; c < gridMap[r].length; c++) {
                 let blockType = gridMap[r][c];
                 
+                // Convert grid indices to screen pixel locations
                 let spawnX = (c * 32) + 16;
                 let spawnY = (r * 32) + 16;
 
@@ -100,18 +107,12 @@ function preload() {
                 } else if (blockType === 2) {
                     spikes.create(spawnX, spawnY, 'spikeTex');
                 } else if (blockType === 3) {
-                    // NEW: Spawns a patrolling enemy right where you painted them!
+                    // Spawns a patrolling enemy right where you painted them!
                     setupPatrollingEnemy(spawnX, spawnY - 4, 100); 
                 }
             }
         }
     } else {
-        // Fallback ground line if memory is completely empty
-        let fallbackFloor = this.make.graphics({ x: 0, y: 0, add: false });
-        fallbackFloor.fillStyle(0x00ff66, 1); fallbackFloor.fillRect(0, 0, 1280, 32);
-        fallbackFloor.generateTexture('fallbackFloorTex', 1280, 32);
-        platforms.create(640, 704, 'fallbackFloorTex');
-    }else {
         // Fallback default floor line so your player has ground if you haven't drawn in the editor yet
         let fallbackFloor = this.make.graphics({ x: 0, y: 0, add: false });
         fallbackFloor.fillStyle(0x00ff66, 1); fallbackFloor.fillRect(0, 0, 1280, 32);
@@ -128,12 +129,7 @@ function preload() {
     swordAttack.body.setAllowGravity(false);
     swordAttack.setActive(false).setVisible(false);
 
-    // 5. Spawn a couple patrolling test enemies
-    enemies = this.physics.add.group();
-    setupPatrollingEnemy(600, 400, 100);
-    setupPatrollingEnemy(900, 400, -120);
-
-    // 6. Collisions & Hazards Configurations
+    // 5. Collisions & Hazards Configurations
     this.physics.add.collider(player, platforms);
     this.physics.add.collider(enemies, platforms);
     
@@ -141,16 +137,16 @@ function preload() {
     this.physics.add.overlap(player, enemies, takeDamage, null, this);
     this.physics.add.overlap(player, spikes, takeDamage, null, this);
 
-    // 7. Input Hooks
+    // 6. Input Hooks
     cursors = this.input.keyboard.createCursorKeys();
     keyC = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.C);
     keyX = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.X);
 
-    // 8. Camera Constraints
+    // 7. Camera Constraints
     this.cameras.main.setBounds(0, 0, 1280, 720); 
     this.cameras.main.startFollow(player, true, 0.1, 0.1); 
 
-    // 9. Health UI HUD
+    // 8. Health UI HUD
     healthText = this.add.text(20, 20, 'HP: ❤️❤️❤️❤️❤️', { font: '28px Arial', fill: '#ff3333' });
     healthText.setScrollFactor(0); 
 }
