@@ -141,7 +141,7 @@ function create() {
     // 9. Input Hooks
     cursors = this.input.keyboard.createCursorKeys();
     keyF = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.F);
-    this.input.on('x', () => { handleAttack(this); });
+   keyX = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.X);
 
     // 10. ADVANCED CAMERA CONFIGURATION
     this.cameras.main.setBounds(0, 0, 3200, 720); // Extends camera movement viewport
