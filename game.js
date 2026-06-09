@@ -78,25 +78,20 @@ function preload() {
     gG.generateTexture('groundTex', 32, 32);
 }
 
-function create() {
-    // 1. EXTEND WORLD BOUNDS to match the size of our editor layout (40 columns * 32px = 1280px wide)
-    this.physics.world.setBounds(0, 0, 1280, 720);
-
+// READ MAP DATA MATRIX FROM EDITOR MEMORY
+    let savedMapRaw = localStorage.getItem('customMetroidvaniaMap');
+    
+    enemies = this.physics.add.group(); // Initialize enemies group BEFORE loading the map loop
     platforms = this.physics.add.staticGroup();
     let spikes = this.physics.add.staticGroup();
-
-    // 2. READ MAP DATA MATRIX FROM EDITOR MEMORY
-    let savedMapRaw = localStorage.getItem('customMetroidvaniaMap');
     
     if (savedMapRaw) {
         let gridMap = JSON.parse(savedMapRaw);
         
-        // Loop through the rows and columns of your custom painted map
         for (let r = 0; r < gridMap.length; r++) {
             for (let c = 0; c < gridMap[r].length; c++) {
                 let blockType = gridMap[r][c];
                 
-                // Convert grid indices to screen pixel locations
                 let spawnX = (c * 32) + 16;
                 let spawnY = (r * 32) + 16;
 
@@ -104,10 +99,19 @@ function create() {
                     platforms.create(spawnX, spawnY, 'groundTex');
                 } else if (blockType === 2) {
                     spikes.create(spawnX, spawnY, 'spikeTex');
+                } else if (blockType === 3) {
+                    // NEW: Spawns a patrolling enemy right where you painted them!
+                    setupPatrollingEnemy(spawnX, spawnY - 4, 100); 
                 }
             }
         }
     } else {
+        // Fallback ground line if memory is completely empty
+        let fallbackFloor = this.make.graphics({ x: 0, y: 0, add: false });
+        fallbackFloor.fillStyle(0x00ff66, 1); fallbackFloor.fillRect(0, 0, 1280, 32);
+        fallbackFloor.generateTexture('fallbackFloorTex', 1280, 32);
+        platforms.create(640, 704, 'fallbackFloorTex');
+    }else {
         // Fallback default floor line so your player has ground if you haven't drawn in the editor yet
         let fallbackFloor = this.make.graphics({ x: 0, y: 0, add: false });
         fallbackFloor.fillStyle(0x00ff66, 1); fallbackFloor.fillRect(0, 0, 1280, 32);
