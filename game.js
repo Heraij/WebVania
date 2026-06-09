@@ -10,8 +10,8 @@ const config = {
     physics: {
         default: 'arcade',
         arcade: {
-            gravity: { y: 1400 }, // Slightly heavier gravity for crisp platforming
-            debug: false // Turn to true if you want to see hitbox outlines
+            gravity: { y: 1400 },
+            debug: false
         }
     },
     scene: {
@@ -32,7 +32,12 @@ let enemies;
 let powerups;
 let swordAttack;
 
-// Player Ability Flags (Metroidvania progression)
+// UI Text Elements
+let healthText;
+
+// Player Attributes & Metroidvania Progression
+let playerHp = 5;
+let isInvincible = false;
 let hasWallJump = false;
 let hasDash = false;
 
@@ -41,111 +46,128 @@ let isDashing = false;
 let canDash = true;
 let dashDirection = 1;
 let isAttacking = false;
-let lastFacingDirection = 1; // 1 for Right, -1 for Left
+let lastFacingDirection = 1;
 
 function preload() {
-    // --- TEXTURE GENERATION ---
-    // Player (White)
+    // --- TEXTURES ---
     let pG = this.make.graphics({ x: 0, y: 0, add: false });
     pG.fillStyle(0xffffff, 1); pG.fillRect(0, 0, 32, 48);
     pG.generateTexture('playerTex', 32, 48);
 
-    // Sword Hitbox (Translucent Cyan)
     let sG = this.make.graphics({ x: 0, y: 0, add: false });
-    sG.fillStyle(0x00f0ff, 0.6); sG.fillRect(0, 0, 50, 32);
-    sG.generateTexture('swordTex', 50, 32);
+    sG.fillStyle(0x00f0ff, 0.6); sG.fillRect(0, 0, 60, 32);
+    sG.generateTexture('swordTex', 60, 32);
 
-    // Enemy (Red)
+    // Hazard/Enemy Textures (Red things that deal damage)
     let eG = this.make.graphics({ x: 0, y: 0, add: false });
     eG.fillStyle(0xff3333, 1); eG.fillRect(0, 0, 40, 40);
     eG.generateTexture('enemyTex', 40, 40);
 
-    // Wall Jump Powerup (Blue Triangle-ish/Square)
+    let spikeG = this.make.graphics({ x: 0, y: 0, add: false });
+    spikeG.fillStyle(0xff3333, 1); 
+    spikeG.fillTriangle(0, 32, 16, 0, 32, 32); // Creates a red danger spike
+    spikeG.generateTexture('spikeTex', 32, 32);
+
+    // Powerups
     let pwG = this.make.graphics({ x: 0, y: 0, add: false });
     pwG.fillStyle(0x3344ff, 1); pwG.fillRect(0, 0, 24, 24);
     pwG.generateTexture('wallJumpTex', 24, 24);
 
-    // Dash Powerup (Gold Square)
     let pdG = this.make.graphics({ x: 0, y: 0, add: false });
     pdG.fillStyle(0xffcc00, 1); pdG.fillRect(0, 0, 24, 24);
     pdG.generateTexture('dashTex', 24, 24);
 
-    // Environment (Green)
+    // Long floor block
     let gG = this.make.graphics({ x: 0, y: 0, add: false });
-    gG.fillStyle(0x00ff66, 1); gG.fillRect(0, 0, 1280, 32);
-    gG.generateTexture('groundTex', 1280, 32);
+    gG.fillStyle(0x00ff66, 1); gG.fillRect(0, 0, 4000, 32);
+    gG.generateTexture('groundTex', 4000, 32);
 }
 
 function create() {
-    // 1. Environment Set Up
+    // 1. EXTEND WORLD BOUNDS (3200 pixels wide!)
+    this.physics.world.setBounds(0, 0, 3200, 720);
+
+    // 2. Map Layout Layout
     platforms = this.physics.add.staticGroup();
-    platforms.create(640, 704, 'groundTex'); // Main floor
     
-    // Create actual walls on the sides to practice wall-jumping!
-    platforms.create(16, 360, 'groundTex').setDisplaySize(32, 720).refreshBody(); // Left Wall
-    platforms.create(1264, 360, 'groundTex').setDisplaySize(32, 720).refreshBody(); // Right Wall
-    platforms.create(640, 450, 'groundTex').setDisplaySize(300, 32).refreshBody(); // Ledge
+    // Bottom ground stretching across our new 3200px world limit
+    platforms.create(1600, 704, 'groundTex');
 
-    // 2. Player Setup
+    // Scatter walls and ledges deep out into the world zone
+    platforms.create(16, 360, 'groundTex').setDisplaySize(32, 720).refreshBody(); // Left boundary wall
+    platforms.create(800, 500, 'groundTex').setDisplaySize(300, 32).refreshBody();
+    platforms.create(1200, 350, 'groundTex').setDisplaySize(32, 500).refreshBody(); // High vertical wall block
+    platforms.create(1600, 450, 'groundTex').setDisplaySize(400, 32).refreshBody();
+    platforms.create(2300, 300, 'groundTex').setDisplaySize(500, 32).refreshBody();
+    platforms.create(3184, 360, 'groundTex').setDisplaySize(32, 720).refreshBody(); // Right boundary wall
+
+    // 3. Spikes & Hazards Group
+    let spikes = this.physics.add.staticGroup();
+    spikes.create(750, 672, 'spikeTex');
+    spikes.create(782, 672, 'spikeTex');
+    spikes.create(2200, 268, 'spikeTex');
+
+    // 4. Player Setup
     player = this.physics.add.sprite(200, 500, 'playerTex');
-    player.setCollideWorldBounds(true);
+    player.setCollideWorldBounds(true); // Locks player inside our 3200px setup
 
-    // 3. Sword Hitbox Setup (Hidden initially)
+    // 5. Sword Setup
     swordAttack = this.physics.add.sprite(0, 0, 'swordTex');
     swordAttack.body.setAllowGravity(false);
     swordAttack.setActive(false).setVisible(false);
 
-    // 4. Enemies Group
+    // 6. Enemies
     enemies = this.physics.add.group();
-    let enemy1 = enemies.create(700, 400, 'enemyTex');
-    enemy1.setCollideWorldBounds(true);
-    enemy1.setVelocityX(100); // Make them pace back and forth
+    setupPatrollingEnemy(900, 450, 100);
+    setupPatrollingEnemy(1700, 400, 120);
+    setupPatrollingEnemy(2400, 250, 150);
 
-    // 5. Powerups Group
+    // 7. Powerups
     powerups = this.physics.add.staticGroup();
-    let wjItem = powerups.create(150, 350, 'wallJumpTex').setData('type', 'walljump');
-    let dashItem = powerups.create(1100, 600, 'dashTex').setData('type', 'dash');
+    powerups.create(1250, 200, 'wallJumpTex').setData('type', 'walljump');
+    powerups.create(2000, 650, 'dashTex').setData('type', 'dash');
 
-    // 6. Collisions & Interactions
+    // 8. Collisions & Hazards Engine
     this.physics.add.collider(player, platforms);
     this.physics.add.collider(enemies, platforms);
     
-    // Player overlapping items
     this.physics.add.overlap(player, powerups, collectPowerup, null, this);
-    // Sword hitting enemies
     this.physics.add.overlap(swordAttack, enemies, destroyEnemy, null, this);
-    // Enemy hitting player (Resets player position for now)
-    this.physics.add.overlap(player, enemies, playerHit, null, this);
+    
+    // Damage overlaps (Touching spikes or enemies cuts 1 HP)
+    this.physics.add.overlap(player, enemies, takeDamage, null, this);
+    this.physics.add.overlap(player, spikes, takeDamage, null, this);
 
-    // 7. Inputs
+    // 9. Input Hooks
     cursors = this.input.keyboard.createCursorKeys();
     keyF = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.F);
-    
-    // Mouse Left-Click or Spacebar for Sword Swing
     this.input.on('pointerdown', () => { handleAttack(this); });
+
+    // 10. ADVANCED CAMERA CONFIGURATION
+    this.cameras.main.setBounds(0, 0, 3200, 720); // Extends camera movement viewport
+    this.cameras.main.startFollow(player, true, 0.1, 0.1); // Camera tracks player with smooth lerp movement
+
+    // 11. SCROLL-LOCKED HEALTH HUD TEXT
+    healthText = this.add.text(20, 20, 'HP: ❤️❤️❤️❤️❤️', { font: '28px Arial', fill: '#ff3333' });
+    healthText.setScrollFactor(0); // This completely pins the UI text to screen view coordinates so it doesn't float away
 }
 
 function update() {
-    // 1. Enemy AI Patrol Logic
+    // Enemy patrolling routine
     enemies.children.iterate((enemy) => {
-        if (enemy && enemy.body.blocked.left) {
-            enemy.setVelocityX(150);
-        } else if (enemy && enemy.body.blocked.right) {
-            enemy.setVelocityX(-150);
+        if (enemy && (enemy.body.blocked.left || enemy.body.touching.left)) {
+            enemy.setVelocityX(120);
+        } else if (enemy && (enemy.body.blocked.right || enemy.body.touching.right)) {
+            enemy.setVelocityX(-120);
         }
     });
 
-    // 2. Freeze movement processing if currently dashing
     if (isDashing) return;
 
-    // 3. Keep track of facing direction for combat orientation
-    if (cursors.left.isDown) {
-        lastFacingDirection = -1;
-    } else if (cursors.right.isDown) {
-        lastFacingDirection = 1;
-    }
+    if (cursors.left.isDown) { lastFacingDirection = -1; }
+    else if (cursors.right.isDown) { lastFacingDirection = 1; }
 
-    // 4. Horizontal Run Logic
+    // Run inputs
     if (cursors.left.isDown) {
         player.setVelocityX(-380);
     } else if (cursors.right.isDown) {
@@ -154,55 +176,49 @@ function update() {
         player.setVelocityX(0);
     }
 
-    // 5. Jump & Wall Jump Logic
+    // Jumping Mechanics
     if (Phaser.Input.Keyboard.JustDown(cursors.up)) {
         if (player.body.touching.down) {
-            // Normal Ground Jump
             player.setVelocityY(-620);
         } 
-        // Wall Jump Check: Must have the powerup AND be pressing against a side wall while airborne
         else if (hasWallJump && (player.body.blocked.left || player.body.blocked.right)) {
             let jumpDir = player.body.blocked.left ? 1 : -1;
-            player.setVelocityX(jumpDir * 400); // Push off the wall horizontally
-            player.setVelocityY(-580);          // Leap upwards vertically
+            player.setVelocityX(jumpDir * 420);
+            player.setVelocityY(-580);
         }
     }
 
-    // 6. Dash Mechanic (Triggered via F Key)
+    // Dash Action
     if (Phaser.Input.Keyboard.JustDown(keyF) && hasDash && canDash) {
         triggerDash(this);
     }
 
-    // Reset dash capability when hitting solid ground
     if (player.body.touching.down) {
         canDash = true;
     }
 
-    // 7. Synchronize Sword Position if an attack sequence is active
+    // Match Attack Hitbox to orientation
     if (isAttacking) {
-        if (lastFacingDirection === 1) {
-            swordAttack.setPosition(player.x + 35, player.y);
-        } else {
-            swordAttack.setPosition(player.x - 35, player.y);
-        }
+        let offset = lastFacingDirection === 1 ? 40 : -40;
+        swordAttack.setPosition(player.x + offset, player.y);
     }
 }
 
-// --- MECHANICS FUNCTIONS ---
+// --- HELPER CONFIGURATIONS ---
+
+function setupPatrollingEnemy(x, y, speed) {
+    let enemy = enemies.create(x, y, 'enemyTex');
+    enemy.setCollideWorldBounds(true);
+    enemy.setVelocityX(speed);
+}
 
 function triggerDash(scene) {
     isDashing = true;
     canDash = false;
-    
-    // Maintain vertical stasis during dash execution
     player.body.setAllowGravity(false);
     player.setVelocityY(0);
-    
-    // Thrust player forward hard based on current input/facing
-    dashDirection = lastFacingDirection;
-    player.setVelocityX(dashDirection * 900);
+    player.setVelocityX(lastFacingDirection * 950);
 
-    // End dash burst after 180 milliseconds
     scene.time.delayedCall(180, () => {
         isDashing = false;
         player.body.setAllowGravity(true);
@@ -211,41 +227,60 @@ function triggerDash(scene) {
 }
 
 function handleAttack(scene) {
-    if (isAttacking) return; // Prevent spamming inside the animation frame window
-
+    if (isAttacking) return;
     isAttacking = true;
     swordAttack.setActive(true).setVisible(true);
 
-    // Flash the sword instance out of existence after 150ms
     scene.time.delayedCall(150, () => {
         isAttacking = false;
         swordAttack.setActive(false).setVisible(false);
-        // Move away safely so it doesn't accidentally trigger floating overlaps
-        swordAttack.setPosition(0, 0); 
+        swordAttack.setPosition(0, 0);
     });
 }
 
 function collectPowerup(player, powerup) {
     let type = powerup.getData('type');
-    
-    if (type === 'walljump') {
-        hasWallJump = true;
-        alert("UNLOCKED: Wall Jumping! (Press Jump against green side walls)");
-    } else if (type === 'dash') {
-        hasDash = true;
-        alert("UNLOCKED: Air Dash! (Press 'F' while moving to surge forward)");
+    if (type === 'walljump') hasWallJump = true;
+    if (type === 'dash') hasDash = true;
+    powerup.destroy();
+}
+
+// --- HEALTH & INJURY SYSTEM ---
+
+function takeDamage(player, hazard) {
+    // Skip if currently immune due to tracking i-frames
+    if (isInvincible || playerHp <= 0) return;
+
+    playerHp--;
+    isInvincible = true;
+
+    // Update Hearts Display
+    let hearts = '';
+    for(let i = 0; i < 5; i++) {
+        hearts += i < playerHp ? '❤️' : '🖤';
     }
-    
-    powerup.destroy(); // Remove item from map
+    healthText.setText('HP: ' + hearts);
+
+    if (playerHp <= 0) {
+        alert("GAME OVER! Resetting map...");
+        location.reload(); // Simple refresh to restart the scene configuration
+        return;
+    }
+
+    // Knockback: Pop player up and away from damage source
+    let forceDirection = player.x < hazard.x ? -300 : 300;
+    player.setVelocityX(forceDirection);
+    player.setVelocityY(-350);
+    player.setTint(0xff3333); // Flash red immediately
+
+    // Provide 1 second of invincibility frame protection
+    this.time.delayedCall(1000, () => {
+        isInvincible = false;
+        player.clearTint(); // Revert back to original white sprite color
+    });
 }
 
 function destroyEnemy(sword, enemy) {
     if (!isAttacking) return;
     enemy.destroy();
-}
-
-function playerHit(player, enemy) {
-    // Classic retro penalty: Return to starting line if punctured
-    player.setPosition(200, 400);
-    player.setVelocity(0,0);
 }
