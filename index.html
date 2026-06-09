@@ -3,12 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebVania - Browser Metroidvania</title>
+    <title>WebVania - Player Window</title>
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+    <style>
+        /* Small styling update to position the navigation link cleanly below the game container */
+        #wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+        a {
+            color: #66fcf1;
+            text-decoration: none;
+            font-family: Arial, sans-serif;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        a:hover {
+            text-shadow: 0 0 8px #66fcf1;
+        }
+    </style>
 </head>
 <body>
-    <div id="game-container"></div>
+    <div id="wrapper">
+        <div id="game-container"></div>
+        <a href="editor.html">GO TO WORLD MAP CANVAS WRITER →</a>
+    </div>
     <script src="game.js"></script>
 </body>
 </html>
