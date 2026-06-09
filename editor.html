@@ -6,43 +6,32 @@
     <title>MetroidVania Room Builder</title>
     <style>
         body {
-            background-color: #0b0c10;
-            color: #e2e8f0;
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+            background-color: #0b0c10; color: #e2e8f0; font-family: Arial, sans-serif;
+            margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center;
         }
         h1 { color: #66fcf1; margin-bottom: 5px; }
         .controls { margin-bottom: 20px; display: flex; gap: 15px; align-items: center; }
-        
         .palette { display: flex; gap: 10px; }
         .tool {
-            width: 60px; height: 40px; border: 2px solid #1f2833; cursor: pointer;
+            width: 70px; height: 40px; border: 2px solid #1f2833; cursor: pointer;
             display: flex; justify-content: center; align-items: center; font-size: 13px; font-weight: bold;
-            border-radius: 4px; user-select: none;
+            border-radius: 4px; user-select: none; box-sizing: border-box;
         }
         .tool.active { border-color: #66fcf1; box-shadow: 0 0 8px #66fcf1; }
-        
         .air { background-color: #161920; }
         .solid { background-color: #00ff66; color: black; }
         .hazard { background-color: #ff3333; color: white; }
-        .enemy-spawn { background-color: #ff0055; color: white; } /* Enemy Node Style */
+        .enemy-spawn { background-color: #ff0055; color: white; }
         
         #editor-grid {
-            display: grid;
-            grid-template-columns: repeat(40, 32px);
-            grid-template-rows: repeat(20, 32px);
-            gap: 1px;
-            background-color: #1f2833;
-            border: 4px solid #1f2833;
+            display: grid; grid-template-columns: repeat(40, 32px); grid-template-rows: repeat(20, 32px);
+            gap: 1px; background-color: #1f2833; border: 4px solid #1f2833;
         }
-        .cell {
-            width: 32px; height: 32px; background-color: #161920; cursor: crosshair;
-            box-sizing: border-box;
-        }
+        .cell { width: 32px; height: 32px; background-color: #161920; cursor: crosshair; box-sizing: border-box; }
+        .cell.solid { background-color: #00ff66; }
+        .cell.hazard { background-color: #ff3333; }
+        .cell.enemy-spawn { background-color: #ff0055; }
+        
         button {
             background-color: #66fcf1; color: #0b0c10; border: none; padding: 10px 20px;
             font-weight: bold; border-radius: 4px; cursor: pointer; font-size: 14px;
@@ -52,10 +41,8 @@
     </style>
 </head>
 <body>
-
     <h1>WORLD MAP CANVAS WRITER</h1>
-    <p>Select a block type and paint your room layout configuration below.</p>
-
+    <p>Paint your platforms, select elements, and save your map.</p>
     <div class="controls">
         <div class="palette">
             <div class="tool air" data-type="0">Air</div>
@@ -65,43 +52,29 @@
         </div>
         <button id="save-btn">SAVE ROOM DESIGN</button>
     </div>
-
     <div id="editor-grid"></div>
-
     <a href="index.html">← Back to Live Game Window</a>
 
     <script>
-        const COLS = 40;
-        const ROWS = 20;
-        let selectedType = 1; 
-        
+        const COLS = 40; const ROWS = 20; let selectedType = 1; 
         let mapData = Array(ROWS).fill().map(() => Array(COLS).fill(0));
 
-        // Load existing saved map if it exists so you don't lose progress on refresh
         let existingMap = localStorage.getItem('customMetroidvaniaMap');
-        if (existingMap) {
-            mapData = JSON.parse(existingMap);
-        }
+        if (existingMap) { mapData = JSON.parse(existingMap); }
 
         const gridContainer = document.getElementById('editor-grid');
         const tools = document.querySelectorAll('.tool');
 
-        // Build the grid
         for (let r = 0; r < ROWS; r++) {
             for (let c = 0; c < COLS; c++) {
                 const cell = document.createElement('div');
                 cell.classList.add('cell');
-                
-                // Color the cell initially if data already exists
                 if (mapData[r][c] === 1) cell.classList.add('solid');
                 if (mapData[r][c] === 2) cell.classList.add('hazard');
                 if (mapData[r][c] === 3) cell.classList.add('enemy-spawn');
                 
-                cell.addEventListener('mousedown', (e) => paintCell(cell, r, c));
-                cell.addEventListener('mouseover', (e) => {
-                    if (e.buttons === 1) paintCell(cell, r, c); 
-                });
-                
+                cell.addEventListener('mousedown', () => paintCell(cell, r, c));
+                cell.addEventListener('mouseover', (e) => { if (e.buttons === 1) paintCell(cell, r, c); });
                 gridContainer.appendChild(cell);
             }
         }
@@ -116,8 +89,7 @@
 
         function paintCell(cell, r, c) {
             mapData[r][c] = selectedType;
-            cell.className = 'cell'; // Reset classes
-            
+            cell.className = 'cell';
             if (selectedType === 1) cell.classList.add('solid');
             if (selectedType === 2) cell.classList.add('hazard');
             if (selectedType === 3) cell.classList.add('enemy-spawn');
