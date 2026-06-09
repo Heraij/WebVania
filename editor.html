@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MetroidVania Room Builder</title>
+    <style>
+        body {
+            background-color: #0b0c10;
+            color: #e2e8f0;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 { color: #66fcf1; margin-bottom: 5px; }
+        .controls { margin-bottom: 20px; display: flex; gap: 15px; align-items: center; }
+        
+        /* The Palette choices container */
+        .palette { display: flex; gap: 10px; }
+        .tool {
+            width: 40px; height: 40px; border: 2px solid #1f2833; cursor: pointer;
+            display: flex; justify-content: center; align-items: center; font-size: 12px; font-weight: bold;
+        }
+        .tool.active { border-color: #66fcf1; box-shadow: 0 0 8px #66fcf1; }
+        
+        /* Visual block type stylings */
+        .air { background-color: #161920; }
+        .solid { background-color: #00ff66; color: black; }
+        .hazard { background-color: #ff3333; color: white; }
+        
+        /* The Grid Canvas Canvas Container */
+        #editor-grid {
+            display: grid;
+            grid-template-columns: repeat(40, 32px); /* 40 columns wide */
+            grid-template-rows: repeat(20, 32px);    /* 20 rows high */
+            gap: 1px;
+            background-color: #1f2833;
+            border: 4px solid #1f2833;
+        }
+        .cell {
+            width: 32px; height: 32px; background-color: #161920; cursor: crosshair;
+            transition: background 0.1s ease;
+        }
+        button {
+            background-color: #66fcf1; color: #0b0c10; border: none; padding: 10px 20px;
+            font-weight: bold; border-radius: 4px; cursor: pointer; font-size: 14px;
+        }
+        button:hover { background-color: #45a29e; }
+        a { color: #66fcf1; text-decoration: none; margin-top: 15px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <h1>WORLD MAP CANVAS WRITER</h1>
+    <p>Select a block type and paint your room layout configuration below.</p>
+
+    <div class="controls">
+        <div class="palette">
+            <div class="tool air active" data-type="0">Air</div>
+            <div class="tool solid" data-type="1">Solid</div>
+            <div class="tool hazard" data-type="2">Spike</div>
+        </div>
+        <button id="save-btn">SAVE ROOM DESIGN</button>
+    </div>
+
+    <div id="editor-grid"></div>
+
+    <a href="index.html">← Back to Live Game Window</a>
+
+    <script>
+        const COLS = 40;
+        const ROWS = 20;
+        let selectedType = 1; // Default to painting Solid walls
+        
+        // 1. Initialize an empty map array structure logic matrix
+        let mapData = Array(ROWS).fill().map(() => Array(COLS).fill(0));
+
+        const gridContainer = document.getElementById('editor-grid');
+        const tools = document.querySelectorAll('.tool');
+
+        // 2. Build the visual cell structure components dynamically
+        for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) {
+                const cell = document.createElement('div');
+                cell.classList.add('cell');
+                cell.dataset.row = r;
+                cell.dataset.col = c;
+                
+                // Click or drag mechanics to paint matrix points
+                cell.addEventListener('mousedown', (e) => paintCell(cell, r, c));
+                cell.addEventListener('mouseover', (e) => {
+                    if (e.buttons === 1) paintCell(cell, r, c); // Paint while holding click dragging
+                });
+                
+                gridContainer.appendChild(cell);
+            }
+        }
+
+        // Palette selector hooks
+        tools.forEach(t => {
+            t.addEventListener('click', () => {
+                tools.forEach(o => o.classList.remove('active'));
+                t.classList.add('active');
+                selectedType = parseInt(t.dataset.type);
+            });
+        });
+
+        function paintCell(cell, r, c) {
+            mapData[r][c] = selectedType;
+            
+            // Clean old styles
+            cell.className = 'cell';
+            if (selectedType === 1) cell.classList.add('solid');
+            if (selectedType === 2) cell.classList.add('hazard');
+        }
+
+        // 3. Save to Local Browser Storage so the game window can read it
+        document.getElementById('save-btn').addEventListener('click', () => {
+            localStorage.setItem('customMetroidvaniaMap', JSON.stringify(mapData));
+            alert("Room data saved successfully! Swap tabs to test the build.");
+        });
+    </script>
+</body>
+</html>
